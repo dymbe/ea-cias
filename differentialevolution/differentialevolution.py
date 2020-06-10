@@ -20,13 +20,18 @@ class DifferentialEvolution:
         self.f = f
         self.cr = cr
         self.eps = eps
+        self.evaluations = 0
         self.population = np.zeros((population_size, n))
         self.scores = self.get_population_scores()
         self.monitor_cycle = monitor_cycle
         self.max_iterations = max_iterations
 
+    def evaluate(self, x):
+        self.evaluations += 1
+        return self.evaluation_function(x)
+
     def get_population_scores(self):
-        return np.asarray([self.evaluation_function(x) for x in self.population])
+        return np.asarray([self.evaluate(x) for x in self.population])
 
     def make_random_population(self):
         random_population = np.random.random((self.population_size, self.n))
@@ -51,7 +56,7 @@ class DifferentialEvolution:
                         y[j] = domain[1]
                 else:
                     y[j] = x[j]
-            new_score = self.evaluation_function(y)
+            new_score = self.evaluate(y)
             if new_score <= self.scores[i]:
                 self.population[i] = y
                 self.scores[i] = new_score
@@ -63,6 +68,7 @@ class DifferentialEvolution:
             cias.plot(self.population[np.argmin(self.scores)], circles=True)
 
     def optimize(self):
+        self.evaluations = 0
         self.population = self.make_random_population()
         self.scores = self.get_population_scores()
         count = 0
@@ -78,7 +84,7 @@ class DifferentialEvolution:
                 pass#break  # Converged
             if count >= self.max_iterations:
                 break  # Not converged, but stop anyway
-        print("DONE!")
+        print(f"DONE after {self.evaluations} evaluations!")
         return self.population[np.argmin(self.scores)]
 
 
