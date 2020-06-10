@@ -20,11 +20,11 @@ class DifferentialEvolution:
         self.f = f
         self.cr = cr
         self.eps = eps
-        self.evaluations = 0
-        self.population = np.zeros((population_size, n))
-        self.scores = self.get_population_scores()
+        self.population = None
+        self.scores = None
         self.monitor_cycle = monitor_cycle
         self.max_iterations = max_iterations
+        self.evaluations = 0
 
     def evaluate(self, x):
         self.evaluations += 1
