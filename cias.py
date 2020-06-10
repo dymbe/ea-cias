@@ -17,7 +17,7 @@ def as_points(x):
     return np.asarray([[x[i], x[i+1]] for i in range(0, len(x), 2)])
 
 
-def plot(x, circles=False):
+def plot(x):
     points = as_points(x)
     _, axes = plt.subplots()
     plt.xlim([0, 1])
@@ -25,9 +25,8 @@ def plot(x, circles=False):
     plt.scatter(points[:, 0], points[:, 1])
     score = evaluate(x)
     plt.title("Fitness: {:10.4f}".format(score))
-    if circles:
-        axes.set_aspect(1)
-        for x, y in points:
-            draw_circle = plt.Circle((x, y), score / 2, fill=False)
-            axes.add_artist(draw_circle)
+    axes.set_aspect(1)
+    for x, y in points:
+        draw_circle = plt.Circle((x, y), score / 2, fill=False)
+        axes.add_artist(draw_circle)
     plt.show()

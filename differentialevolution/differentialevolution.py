@@ -65,7 +65,7 @@ class DifferentialEvolution:
         if count % 1000 == 0:
             print(f"Iteration: {count}")
             print(f"Best score: {np.min(self.scores)}")
-            cias.plot(self.population[np.argmin(self.scores)], circles=True)
+            cias.plot(self.population[np.argmin(self.scores)])
 
     def optimize(self):
         self.evaluations = 0
@@ -98,4 +98,4 @@ if __name__ == '__main__':
                                population_size=20 * n_circles,
                                eps=1e-10)
 
-    cias.plot(de.optimize(), circles=True)
+    cias.plot(de.optimize())
