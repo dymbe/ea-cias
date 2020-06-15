@@ -3,38 +3,31 @@ import cma
 import numpy as np
 
 
-def get_optimal_points(n, sigma0=0.25, restarts=3, fevalmax=10 ** 5, seed=None):
-    '''
-    Get optimal points using CMA-ES
-    :param n: number of circles
-    :param sigma0: initial standard deviation (default is 1/4 domain width)
-    :param restarts: number of BIPOP restarts to use
-    :param fevalmax: max evals (default 10^5)
-    :param seed: seed to use for reproducibility
-    :return: points found with best fitness
-    '''
-    opts = cma.CMAOptions()
-    opts.set("bounds", [0.0, 1.0])
-    opts.set("maxfevals", fevalmax)
-    if seed is not None:
-        opts.set("seed", seed)
+def default_args():
+    fmin_default_args = {
+        'sigma0': 0.25
+    }
+    opts_default_args = {
+        'bounds': [0, 1],
+        'maxfevals': 10 ** 5
+    }
+    return fmin_default_args, opts_default_args
+
+
+def get_optimal_points(n, fmin_args=None, opts_args=None):
+    if fmin_args is None:
+        fmin_args = default_args()[0]
+    if opts_args is None:
+        opts_args = default_args()[1]
+
+    opts = cma.CMAOptions(**opts_args)
     res = cma.fmin(cias.negative_evaluate,
-                   get_random_initial_population(n),
-                   sigma0,
-                   opts,
-                   bipop=True,
-                   restarts=restarts
+                   np.random.rand(n * 2),
+                   options=opts,
+                   **fmin_args
                    )
     return res[0]
 
 
-def get_random_initial_population(n):
-    pop = []
-    for _ in range(n):
-        pop.append(np.random.random())
-        pop.append(np.random.random())
-    return pop
-
-
 if __name__ == '__main__':
-    cias.plot(get_optimal_points(5), True)
+    cias.plot(get_optimal_points(6))
