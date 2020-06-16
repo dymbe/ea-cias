@@ -33,13 +33,13 @@ def plot(x):
     plt.show()
 
 
-def get_optimal_distances():
+def get_optimal_score():
     optimal_distances = {}
     with open("../optimal_distances.csv") as f:
         reader = csv.reader(f)
         for row in reader:
-            optimal_distances[int(row[0])] = float(row[1])
+            optimal_distances[int(row[0])] = -float(row[1])
     return optimal_distances
 
 
-optimal_distances = get_optimal_distances()
+optimal_scores = get_optimal_score()

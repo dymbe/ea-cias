@@ -2,6 +2,14 @@ import numpy as np
 import cias
 
 
+class Result:
+    def __init__(self, x=None, generation=None, evaluations=None, success=False):
+        self.x = x
+        self.generation = generation
+        self.evaluations = evaluations
+        self.success = success
+
+
 class DifferentialEvolution:
     def __init__(self,
                  n,
@@ -12,7 +20,7 @@ class DifferentialEvolution:
                  cr=0.9,
                  eps=1e-2,
                  monitor_cycle=200,
-                 max_iterations=10000):
+                 max_evaluations=300000):
         self.n = n
         self.domains = domains
         self.evaluation_function = evaluation_function
@@ -23,7 +31,7 @@ class DifferentialEvolution:
         self.population = None
         self.scores = None
         self.monitor_cycle = monitor_cycle
-        self.max_iterations = max_iterations
+        self.max_evaluations = max_evaluations
         self.evaluations = 0
 
     def evaluate(self, x):
@@ -62,7 +70,8 @@ class DifferentialEvolution:
                 self.scores[i] = new_score
 
     def show_progress(self, count):
-        if count % 1000 == 0:
+        if count % self.monitor_cycle == 0:
+            print(abs(np.min(self.scores) - cias.optimal_scores[self.n / 2]))
             print(f"Iteration: {count}")
             print(f"Best score: {np.min(self.scores)}")
             cias.plot(self.population[np.argmin(self.scores)])
@@ -72,30 +81,38 @@ class DifferentialEvolution:
         self.population = self.make_random_population()
         self.scores = self.get_population_scores()
         count = 0
-        while True:
-            prev_min_score = np.min(self.scores)
+        while self.evaluations < self.max_evaluations:
             self.evolve()  # Evolve population and update score
             self.show_progress(count)
             count += 1
-            if count % self.monitor_cycle == 0 and (prev_min_score - np.min(self.scores)) < self.eps:
-                break  # Converged
-            rd = (np.mean(self.scores) - np.min(self.scores)) ** 2 / (np.min(self.scores) ** 2 + self.eps)
-            if rd < self.eps:
-                pass#break  # Converged
-            if count >= self.max_iterations:
-                break  # Not converged, but stop anyway
-        print(f"DONE after {self.evaluations} evaluations!")
-        return self.population[np.argmin(self.scores)]
+            if abs(np.min(self.scores) - cias.optimal_scores[self.n / 2]) < self.eps:
+                return Result(x=self.population[np.argmin(self.scores)],
+                              generation=count,
+                              evaluations=self.evaluations,
+                              success=True)
+        return Result(x=self.population[np.argmin(self.scores)],
+                      generation=count,
+                      evaluations=self.evaluations,
+                      success=False)
+
+
+def print_results(res):
+    if res.success:
+        print(f"Optimal found after {res.generation} generations and {res.evaluations} evaluations")
+    else:
+        print(f"Run failed after {res.generation} generations and {res.evaluations} evaluations")
 
 
 if __name__ == '__main__':
     np.random.seed(42)
-    n_circles = 5
+    n_circles = 15
 
     de = DifferentialEvolution(2 * n_circles,
                                [(0, 1)] * 2 * n_circles,
                                cias.negative_evaluate,
-                               population_size=20 * n_circles,
-                               eps=1e-10)
-
-    cias.plot(de.optimize())
+                               population_size=80,
+                               eps=1e-4,
+                               monitor_cycle=100)
+    res = de.optimize()
+    print_results(res)
+    cias.plot(res.x)
