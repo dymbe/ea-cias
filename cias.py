@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import csv
 from scipy.spatial.distance import cdist
 
 
@@ -30,3 +31,15 @@ def plot(x):
         draw_circle = plt.Circle((x, y), score / 2, fill=False)
         axes.add_artist(draw_circle)
     plt.show()
+
+
+def get_optimal_distances():
+    optimal_distances = {}
+    with open("../optimal_distances.csv") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            optimal_distances[int(row[0])] = float(row[1])
+    return optimal_distances
+
+
+optimal_distances = get_optimal_distances()
