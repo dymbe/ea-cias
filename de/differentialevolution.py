@@ -12,7 +12,6 @@ class Result:
 
 class DifferentialEvolution:
     def __init__(self,
-                 n,
                  domains,
                  evaluation_function,
                  population_size=50,
@@ -20,8 +19,9 @@ class DifferentialEvolution:
                  cr=0.9,
                  eps=1e-2,
                  monitor_cycle=200,
-                 max_evaluations=300000):
-        self.n = n
+                 max_evaluations=300000,
+                 silent=False):
+        self.n = len(domains)
         self.domains = domains
         self.evaluation_function = evaluation_function
         self.population_size = population_size
@@ -33,6 +33,7 @@ class DifferentialEvolution:
         self.monitor_cycle = monitor_cycle
         self.max_evaluations = max_evaluations
         self.evaluations = 0
+        self.silent = silent
 
     def evaluate(self, x):
         self.evaluations += 1
@@ -70,8 +71,7 @@ class DifferentialEvolution:
                 self.scores[i] = new_score
 
     def show_progress(self, count):
-        if count % self.monitor_cycle == 0:
-            print(abs(np.min(self.scores) - cias.optimal_scores[self.n / 2]))
+        if not self.silent and count % self.monitor_cycle == 0:
             print(f"Iteration: {count}")
             print(f"Best score: {np.min(self.scores)}")
             cias.plot(self.population[np.argmin(self.scores)])
@@ -107,8 +107,7 @@ if __name__ == '__main__':
     np.random.seed(42)
     n_circles = 15
 
-    de = DifferentialEvolution(2 * n_circles,
-                               [(0, 1)] * 2 * n_circles,
+    de = DifferentialEvolution([(0, 1)] * 2 * n_circles,
                                cias.negative_evaluate,
                                population_size=80,
                                eps=1e-4,
