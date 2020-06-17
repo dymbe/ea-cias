@@ -7,7 +7,8 @@ from scipy.spatial.distance import cdist
 def evaluate(x):
     points = as_points(x)
     dists = cdist(points, points)
-    return np.min(dists[np.triu_indices(dists.shape[0], 1, dists.shape[0])])
+    np.fill_diagonal(dists, np.inf)
+    return np.min(dists)
 
 
 def negative_evaluate(x):
