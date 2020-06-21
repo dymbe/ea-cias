@@ -1,5 +1,5 @@
 import multiprocessing as mp
-from de.stolen_de import de
+from de.generator_de import de
 import numpy as np
 from time import time
 import cias
@@ -60,7 +60,7 @@ def experiment(pops, ns, fs, crs, reps, eps, filename=f"out-{int(time() // 100)}
 
 experiment(pops=[40, 60, 80, 100, 120],
            ns=np.arange(12, 24 + 1, 4),
-           fs=np.linspace(0, 2, num=7),
+           fs=np.linspace(0.1, 2, num=7),
            crs=np.linspace(0, 1, num=5),
            reps=8,
            eps=1e-4,
