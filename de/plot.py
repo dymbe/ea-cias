@@ -5,16 +5,15 @@ import csv
 import itertools
 
 
-def get_data(path, pop=None, n=None, cr=None):
-    def eq_or_none(a, b):
-        return a == b or b is None
+def get_data(path, pop=None, n=None, cr=None, f=None):
+    def eq_or_none(a, b): return a == b or b is None
 
     x = []
-    with open(path) as f:
-        reader = csv.reader(f)
+    with open(path) as file:
+        reader = csv.reader(file)
         for row in reader:
             row_success, row_evaluations, row_cr, row_f, row_n, row_pop, row_distance = [float(x) for x in row]
-            if eq_or_none(row_pop, pop) and eq_or_none(row_n, n) and eq_or_none(row_cr, cr):
+            if eq_or_none(row_pop, pop) and eq_or_none(row_n, n) and eq_or_none(row_cr, cr) and eq_or_none(row_f, f):
                 x.append([row_success, row_evaluations, row_cr, row_f, row_n, row_pop, row_distance])
     return np.array(x)
 
@@ -32,7 +31,7 @@ def plotdata():
     perms = itertools.product(pops, ns)
 
     for pop, n in perms:
-        data = get_data("out/out-1592522819.038235.csv", pop=pop, n=n / 2)
+        data = get_data("out/old_format/out-1592522819.038235.csv", pop=pop, n=n / 2)
         cr_data = {}
         for row in data:
             success, evaluations, cr, f, _, _ = row
@@ -59,7 +58,7 @@ def plotdata():
         plt.show()
 
 
-def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key):
+def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key, xonly=None, yonly=None, zonly=None, k1only=None, k2only=None):
     raw_data = get_data(file)
     values = {
         "successrate": raw_data[:, 0],
@@ -71,7 +70,15 @@ def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key):
         "distance": raw_data[:, 6]
     }
 
-    colors = ["blue", "red", "green", "purple", "orange", "brown", "teal", "gray"]
+    longname = {
+        "successrate": "Success rate",
+        "eval": "Evaluations on completion",
+        "cr": "CR",
+        "f": "F",
+        "n": "Number of circles",
+        "pop": "Population size",
+        "distance": "Average distance to optimal"
+    }
 
     xs = values[xkey]
     ys = values[ykey]
@@ -85,17 +92,17 @@ def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key):
     for k1, k2 in perms:
         k1_idxs = np.where(k1s == k1)
         k2_idxs = np.where(k2s == k2)
-        k_both_is = np.intersect1d(k1_idxs, k2_idxs)
+        kx_idxs = np.intersect1d(k1_idxs, k2_idxs)
         handles = []
-        for i, z in enumerate(np.unique(zs[k_both_is])):
-            colors = get_cmap(len(np.unique(zs[k_both_is])) + 1)
-            z_idxs = np.intersect1d(np.where(zs == z), k_both_is)
+        for i, z in enumerate(np.unique(zs[kx_idxs])):
+            colors = get_cmap(len(np.unique(zs[kx_idxs])) + 1)
+            z_idxs = np.intersect1d(np.where(zs == z), kx_idxs)
             zstr = str(z) if type(z) == np.int64 else "{:.3f}".format(z)
             handles.append(Patch(color=colors(i), label=f"{zkey}=" + zstr))
             plt.plot(xs[z_idxs], ys[z_idxs], "o-", color=colors(i))
 
-        plt.title(f"{k1key}={k1}, {k2key}={k2}")
-        plt.xlabel(xkey)
+        plt.title(f"{longname[k1key]}={k1}, {longname[k2key]}={k2}")
+        plt.xlabel(longname[xkey])
         plt.yscale("log")
         plt.ylabel(ykey)
         plt.ylim([np.min(ys), np.max(ys) * 1.1])
@@ -103,6 +110,3 @@ def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key):
 
         plt.minorticks_off()
         plt.show()
-
-
-plot_nxyz("out/n_vs_cr.csv", "cr", "distance", "n", "pop", "f")
