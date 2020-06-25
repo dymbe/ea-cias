@@ -17,7 +17,7 @@ def de(fobj, n, f=0.8, cr=0.7, popsize=20, maxevals=300000, eps=1e-4, r=np.rando
     evals = popsize
     optimal = cias.optimal_scores[n / 2]
     popdistances = np.asarray([cias.get_negative_distances(ind) for ind in pop]) if wb_crossover is not None else None
-    while abs(fitness[best_idx] - optimal) > eps and evals < maxevals:
+    while fitness[best_idx] - optimal > eps and evals < maxevals:
         for i in range(popsize):
             idxs = [idx for idx in range(popsize) if idx != i]
             a, b, c = pop[r.choice(idxs, 3, replace=False)]
@@ -31,12 +31,16 @@ def de(fobj, n, f=0.8, cr=0.7, popsize=20, maxevals=300000, eps=1e-4, r=np.rando
                     cross_points[[idx, idx + 1]] = True
             elif wb_crossover == Crossover.WEIGHTED:
                 smallest_distances = np.max(popdistances[i], axis=0)
-                sorted_idxs = np.argsort(smallest_distances) * 2
+                sorted_idxs = np.argsort(-smallest_distances) * 2
                 weights = np.zeros(n)
-                for j, idx in enumerate(sorted_idxs):
-                    x = j / (len(sorted_idxs) - 1)
-                    weights[[idx, idx + 1]] = 1 - ((1 - cr) / cr) * x
-                cross_points = r.rand(n) < weights
+                if cr != 0:
+                    for j, idx in enumerate(sorted_idxs):
+                        x = j / (len(sorted_idxs) - 1)
+                        weights[[idx, idx + 1]] = 1 - ((1 - cr) / cr) * x
+                    cross_points = r.rand(n) < weights
+                else:
+                    cross_points = np.zeros(n)
+                    cross_points[sorted_idxs[0], sorted_idxs[0] + 1] = True
             else:
                 cross_points = r.rand(n) < cr
                 if not np.any(cross_points):
@@ -62,4 +66,4 @@ def de(fobj, n, f=0.8, cr=0.7, popsize=20, maxevals=300000, eps=1e-4, r=np.rando
         yield {"best": best,
                "fitness": fitness[best_idx],
                "evaluations": evals,
-               "success": abs(fitness[best_idx] - optimal) < eps}
+               "success": fitness[best_idx] - optimal < eps}
