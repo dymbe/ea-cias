@@ -86,7 +86,10 @@ def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key, xonly=None, yonly=None, zonl
     k1s = values[k1key]
     k2s = values[k2key]
 
-    perms = list(itertools.product(set(k1s), set(k2s)))
+    f_k1s = set(val for val in k1s if k1only is None or val in k1only)
+    f_k2s = set(val for val in k2s if k2only is None or val in k2only)
+
+    perms = list(itertools.product(f_k1s, f_k2s))
     perms = sorted(perms, key=lambda x: (x[0], x[1]))
 
     for k1, k2 in perms:
@@ -94,12 +97,17 @@ def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key, xonly=None, yonly=None, zonl
         k2_idxs = np.where(k2s == k2)
         kx_idxs = np.intersect1d(k1_idxs, k2_idxs)
         handles = []
-        for i, z in enumerate(np.unique(zs[kx_idxs])):
+        for i, z in enumerate(np.unique([val for val in zs[kx_idxs] if zonly is None or val in zonly])):
             colors = get_cmap(len(np.unique(zs[kx_idxs])) + 1)
             z_idxs = np.intersect1d(np.where(zs == z), kx_idxs)
             zstr = str(z) if type(z) == np.int64 else "{:.3f}".format(z)
             handles.append(Patch(color=colors(i), label=f"{zkey}=" + zstr))
-            plt.plot(xs[z_idxs], ys[z_idxs], "o-", color=colors(i))
+            x_idxs = [i for i, val in enumerate(xs) if xonly is None or val in xonly]
+            y_idxs = [i for i, val in enumerate(ys) if yonly is None or val in yonly]
+            xy_idxs = np.intersect1d(x_idxs, y_idxs)
+            x = xs[np.intersect1d(xy_idxs, z_idxs)]
+            y = ys[np.intersect1d(xy_idxs, z_idxs)]
+            plt.plot(x, y, "o-", color=colors(i))
 
         plt.title(f"{longname[k1key]}={k1}, {longname[k2key]}={k2}")
         plt.xlabel(longname[xkey])
