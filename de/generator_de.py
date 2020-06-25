@@ -9,14 +9,35 @@ class Crossover(Enum):
 
 
 def de(fobj, n, f=0.8, cr=0.7, popsize=20, maxevals=300000, eps=1e-4, r=np.random.RandomState(),
-       wb_crossover=None):
-    pop = r.rand(popsize, n)
+       wb_crossover=None, wb_init=False):
+    if wb_init:
+        pop = np.zeros((popsize, n))
+        for i in range(popsize):
+            square_base = int(np.ceil(np.sqrt(n / 2)))
+            grid_size = 1 / (square_base - 1)
+            points = np.zeros((square_base, square_base * 2))
+            for x in range(square_base):
+                points[:, x * 2] = x * grid_size
+            for y in range(square_base):
+                points[y, 1::2] = y * grid_size
+            flat_points = points.reshape(2 * (square_base ** 2))
+            idxs = np.sort(r.choice(range(square_base ** 2), size=int(n / 2), replace=False))
+            for j, idx in enumerate(idxs):
+                pop[i, [j * 2, j * 2 + 1]] = flat_points[[idx * 2, idx * 2 + 1]]
+            pop[i] = np.clip(pop[i] + ((r.rand(n) - 0.5) * grid_size), 0, 1)
+    else:
+        pop = r.rand(popsize, n)
     fitness = np.asarray([fobj(ind) for ind in pop])
     best_idx = np.argmin(fitness)
     best = pop[best_idx]
     evals = popsize
     optimal = cias.optimal_scores[n / 2]
     popdistances = np.asarray([cias.get_negative_distances(ind) for ind in pop]) if wb_crossover is not None else None
+    if fitness[best_idx] - optimal < eps:
+        yield {"best": best,
+               "fitness": fitness[best_idx],
+               "evaluations": evals,
+               "success": fitness[best_idx] - optimal < eps}
     while fitness[best_idx] - optimal > eps and evals < maxevals:
         for i in range(popsize):
             idxs = [idx for idx in range(popsize) if idx != i]
@@ -40,7 +61,7 @@ def de(fobj, n, f=0.8, cr=0.7, popsize=20, maxevals=300000, eps=1e-4, r=np.rando
                     cross_points = r.rand(n) < weights
                 else:
                     cross_points = np.zeros(n)
-                    cross_points[sorted_idxs[0], sorted_idxs[0] + 1] = True
+                    cross_points[[sorted_idxs[0], sorted_idxs[0] + 1]] = True
             else:
                 cross_points = r.rand(n) < cr
                 if not np.any(cross_points):
