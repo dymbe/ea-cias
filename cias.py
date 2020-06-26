@@ -11,12 +11,23 @@ def evaluate(x):
     return np.min(dists)
 
 
+def get_distances(x):
+    points = as_points(x)
+    dists = cdist(points, points)
+    np.fill_diagonal(dists, np.inf)
+    return dists
+
+
 def negative_evaluate(x):
     return -evaluate(x)
 
 
+def get_negative_distances(x):
+    return -get_distances(x)
+
+
 def as_points(x):
-    return np.asarray([[x[i], x[i+1]] for i in range(0, len(x), 2)])
+    return np.asarray(x).reshape(-1, 2)
 
 
 def plot(x):
