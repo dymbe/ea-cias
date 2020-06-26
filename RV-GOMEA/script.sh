@@ -1,4 +1,10 @@
 #!/bin/bash
+#   -f %d: Sets linkage model that is used. Positive: Use a FOS with elements of %d consecutive variables.
+# -1 for full linkage model,
+# -2 for dynamic linkage tree learned from the population,
+# -3 for fixed linkage tree learned from distance measure,
+# -4 for bounded fixed linkage tree learned from distance measure,
+# -5 for fixed bounded linkage tree learned from random distance measure.
 
 #  pro: Index of optimization problem to be solved (minimization).
 # dim: Number of parameters.
@@ -19,5 +25,5 @@
 # sec: The time limit in seconds.
 
 
-#                   - dim - - - tau pop nop dmd srt eva vtr imp tol sec
-./RV-GOMEA -f -2 -s 14 32 0 1 0 0.8 180 1 0.9 1 160000 -0.33333 57 0 600
+#                     - dim - - - tau pop nop dmd srt eva vtr imp tol sec
+./RV-GOMEA -f 2 -o -s -b 14 22 0 1 0 0.8 $1 1 0.9 1 110000 -0.39820 209 0 600
