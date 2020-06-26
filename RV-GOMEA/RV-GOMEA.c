@@ -120,6 +120,9 @@ void ezilaitiniMemory( void );
 void ezilaitiniDistributionMultipliers( int population_index );
 void ezilaitiniParametersForSampling( int population_index );
 void ezilaitiniParametersAllPopulations( void );
+void calculateDominationMatrix( int population_index ); 
+short dominates( double x_1, double x_2, double y_1,  double y_2 );
+
 /*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 
@@ -127,7 +130,8 @@ void ezilaitiniParametersAllPopulations( void );
 /*-=-=-=-=-=-=-=-=-=-=-=- Section Global Variables -=-=-=-=-=-=-=-=-=-=-=-=-*/
 short  print_verbose_overview,                              /* Whether to print a overview of settings (0 = no). */
        use_guidelines,                                      /* Whether to override parameters with guidelines (for those that exist). */
-       fix_seed;                                            /* Whether a fixed seed is used. */
+       fix_seed,                                            /* Whether a fixed seed is used. */
+       print_linkage_tree;                                  /* to print the linkage tree. */
 int    base_population_size,                                /* The size of the first population in the multi-start scheme. */
       *selection_sizes,                                     /* The size of the selection for each population. */
        total_number_of_writes,                              /* Total number of times a statistics file has been written. */
@@ -348,6 +352,7 @@ void parseOptions( int argc, char **argv, int *index )
                 case 'b': black_box_evaluations         = 1; break;
                 case 'f': parseFOSElementSize( index, argc, argv ); break;
                 case 'S': fix_seed                      = 1; break;
+                case 'l': print_linkage_tree            = 1; break;
                 default : optionError( argv, *index );
                 }
             }
@@ -745,6 +750,9 @@ void initializeFOS( int population_index )
             new_FOS->sets[i/FOS_element_size][i%FOS_element_size] = i;
             new_FOS->set_length[i/FOS_element_size]++;
         }
+    }
+    if( print_linkage_tree){
+        printFOS( new_FOS);
     }
     linkage_model[population_index] = new_FOS;
 }
@@ -1730,6 +1738,7 @@ void generateAndEvaluateNewSolutionsToFillAllPopulations( void )
 /**
  * Generates new solutions for each
  * of the populations in turn.
+ * TODO HERE?
  */
 void generateAndEvaluateNewSolutionsToFillPopulation( int population_index )
 {
@@ -1753,6 +1762,12 @@ void generateAndEvaluateNewSolutionsToFillPopulation( int population_index )
         alpha_AMS = 0.5*tau*(((double) population_sizes[population_index])/((double) (population_sizes[population_index]-1)));
         number_of_AMS_solutions = (int) (alpha_AMS*(population_sizes[population_index]-1));
         fos_order = randomPermutation(linkage_model[population_index]->length);
+
+        //reorder based on location
+        // printf("Howmany times here?\n");
+        calculateDominationMatrix(population_index);
+
+
         for( oj = 0; oj < linkage_model[population_index]->length; oj++ )
         {
             j = fos_order[oj];
@@ -1809,6 +1824,241 @@ void generateAndEvaluateNewSolutionsToFillPopulation( int population_index )
         free( individual_improved );
         free( FOS_element_caused_improvement );
     }
+}
+
+
+/**
+ * NEW CODE
+ * 
+ */
+void reorderBasedOnFronts(int population_index, int individual_index, int *circle_ranks)
+{   
+    int i, placed_counter, current_rank, candidate_index;
+    double candidate_x_value, *copy_params;
+    
+    copy_params = (double *) Malloc( number_of_parameters*sizeof( double ) );
+    
+    //make deep copy of params
+    memcpy(copy_params, populations[population_index][individual_index], number_of_parameters*sizeof( double ));
+    printf("\n ======================== \n");
+
+    // for( i = 0; i < number_of_parameters; i++ )
+    // {
+    //     printf("%lf , ", copy_params[i]);
+    // }
+
+    // printf("\n Circle ranks: \n");
+    // for( i = 0; i < number_of_parameters/2; i++ )
+    // {
+    //     printf("%d", circle_ranks[i]);
+    // }
+    // printf("\n");
+
+    printf(" before reorder: \n");
+    for( i = 0; i < number_of_parameters; i++ )
+    {
+        printf("%lf , ", populations[population_index][individual_index][i]);
+    }
+    printf("\n");
+
+    placed_counter = 0;
+    current_rank = 0;
+    while(placed_counter < number_of_parameters/2){
+        candidate_x_value = -1.0;
+        candidate_index = -1;
+        for( i = 0; i < number_of_parameters/2; i++ )
+        {   
+            if(circle_ranks[i] == current_rank){
+                //no new candidate yet
+                if(candidate_x_value < 0.0){
+                    candidate_x_value = copy_params[2*i];
+                    candidate_index = i;
+                }
+                // better candidate
+                if(current_rank%2 == 0){
+                    if(copy_params[2*i] < candidate_x_value) {
+                        candidate_x_value = copy_params[2*i];
+                        candidate_index = i;
+                    }
+                } else {
+                    if(copy_params[2*i] > candidate_x_value) {
+                        candidate_x_value = copy_params[2*i];
+                        candidate_index = i;    
+                    }
+                }
+
+            }
+            // printf("nc = %d, ", candidate_index);
+            
+        }
+        // printf("candidate index: %d: \n", candidate_index);
+        //if no candidate can be found needs to go next rank
+        if(candidate_index == -1){
+            current_rank++;
+        } else {
+            //Move candidate to solution.
+            populations[population_index][individual_index][2* placed_counter] = copy_params[2*candidate_index];
+            populations[population_index][individual_index][2* placed_counter + 1] = copy_params[2*candidate_index + 1];
+            placed_counter++;
+            circle_ranks[candidate_index] = -1;
+
+            // printf(" results after %d: \n", placed_counter);
+            // for( i = 0; i < number_of_parameters; i++ )
+            // {
+            //     printf("%lf , ", populations[population_index][individual_index][i]);
+            // }
+        }
+        // printf("placed counter: %d \n", placed_counter);
+    }
+ 
+    printf(" results: \n");
+    for( i = 0; i < number_of_parameters; i++ )
+    {
+        printf("%lf , ", populations[population_index][individual_index][i]);
+    }
+
+}
+
+/**
+ * NEW CODE
+ * calculate domination matrix
+ * calculate ranks
+ * reorder based on rank and switchin x
+ * copy new order to points
+ */
+void calculateDominationMatrix(int population_index)
+{   
+
+    short **domination_matrix;
+    int i, h, j, k, *being_dominated_count, front,
+          number_of_solutions_in_front, *indices_in_this_rank,
+          *circle_ranks;
+    
+    // printf("calculate dom matrix hello\n");
+    
+    /* The domination matrix stores for each pair i
+   * whether it dominates pair j, i.e. domination[i][j] = 1. */
+  domination_matrix = (short **) Malloc( number_of_parameters/2*sizeof( short * ) );
+  for( i = 0; i < number_of_parameters/2; i++ )
+    domination_matrix[i] = (short *) Malloc( number_of_parameters/2*sizeof( short ) );
+
+  being_dominated_count = (int *) Malloc( number_of_parameters/2*sizeof( int ) );
+
+
+
+  for( h = 0; h < population_sizes[population_index]; h++)
+  {
+
+    for( i = 0; i < number_of_parameters/2; i++ )
+    {
+        being_dominated_count[i] = 0;
+        for( j = 0; j < number_of_parameters/2; j++ )
+            domination_matrix[i][j] = 0;
+    }
+    for( i = 0; i < number_of_parameters/2; i++ )
+    {
+        for( j = 0; j < number_of_parameters/2; j++ )
+        {
+        if( i != j )
+        {
+            if( dominates( populations[population_index][h][2*i], populations[population_index][h][2*j],populations[population_index][h][2*i+1], populations[population_index][h][2*j+1]))
+            {
+            domination_matrix[i][j] = 1;
+            being_dominated_count[j]++;
+            }
+        }
+        }
+    }
+  
+//   for( int a = 0; a <  number_of_parameters/2; a++){
+//       for( int b = 0; b <  number_of_parameters/2; b++){
+//           printf("%d", domination_matrix[a][b]);
+//     }
+//     printf("\n");
+//   }
+//   printf("domcount");
+//     for( int a = 0; a <  number_of_parameters/2; a++){
+        
+//         printf(" %d",  being_dominated_count[a]);
+        
+//     }
+//     printf("\n");
+
+
+/* Compute fronts from the domination matrix */
+    front                       = 0;
+    number_of_solutions_in_front = 0;
+    indices_in_this_rank       = (int *) Malloc( number_of_parameters/2*sizeof( int ) );
+    circle_ranks              =  (int *) Malloc( number_of_parameters/2*sizeof( int ) );
+    
+    while( number_of_solutions_in_front < number_of_parameters/2 )
+    {   
+        k = 0;
+        for( i = 0; i < number_of_parameters/2; i++ )
+        {
+            if( being_dominated_count[i] == 0 )
+            {
+                circle_ranks[i]  = front;
+                indices_in_this_rank[k]     = i;
+                k++;
+                being_dominated_count[i]--;
+                number_of_solutions_in_front++;
+            }
+        }
+
+        for( i = 0; i < k; i++ )
+        {
+            for( j = 0; j < number_of_parameters/2; j++ )
+            {
+                if( domination_matrix[indices_in_this_rank[i]][j] == 1 )
+                being_dominated_count[j]--;
+            }
+        }
+
+        front++;
+    }
+
+
+    // printf("Circle ranks");
+    // for( i = 0; i < number_of_parameters/2; i++ )
+    // {
+    //     printf("%d \n", h);
+    //     printf("%d", circle_ranks[i]);
+    // }
+    // printf("\n");
+
+    reorderBasedOnFronts(population_index, h, circle_ranks);
+
+  }
+//   free( indices_in_this_rank );
+
+//   free( being_dominated_count );
+
+//   free( circle_ranks );
+
+//   for( i = 0; i < population_sizes[population_index]; i++ )
+//     free( domination_matrix[i] );
+//   free( domination_matrix );
+}
+
+/**
+ * Returns 1 if x dominates y, 0 otherwise.
+ */
+short dominates( double x_1, double x_2, double y_1,  double y_2 )
+{
+    // printf(" ------------\n");
+
+    // printf("obj val x1: %lf\n", x_1);
+    // printf("obj val x2: %lf\n", x_2);
+    // printf("obj val y1: %lf\n", y_1);
+    // printf("obj val y2: %lf\n", y_2);
+
+
+    if(x_1 < x_2 && y_1 < y_2){
+        // printf("DOMINATION \n");
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -1899,6 +2149,7 @@ double *generateNewPartialSolutionFromFOSElement( int population_index, int FOS_
 /**
  * Generates and returns a single new solution by drawing
  * a single sample from a specified model.
+ * TODO HERE?
  */
 short generateNewSolutionFromFOSElement( int population_index, int FOS_index, int individual_index, short apply_AMS )
 {
