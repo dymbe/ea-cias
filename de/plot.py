@@ -6,7 +6,8 @@ import itertools
 
 
 def get_data(path, pop=None, n=None, cr=None, f=None):
-    def eq_or_none(a, b): return a == b or b is None
+    def eq_or_none(a, b):
+        return a == b or b is None
 
     x = []
     with open(path) as file:
@@ -24,41 +25,7 @@ def get_cmap(n, name='hsv'):
     return plt.cm.get_cmap(name, n)
 
 
-def plotdata():
-    pops = [40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140]
-    ns = [12]
-    crs = [0.8]
-    perms = itertools.product(pops, ns)
-
-    for pop, n in perms:
-        data = get_data("out/old_format/out-1592522819.038235.csv", pop=pop, n=n / 2)
-        cr_data = {}
-        for row in data:
-            success, evaluations, cr, f, _, _ = row
-            if cr in crs:
-                if cr in cr_data:
-                    cr_data[cr] = np.vstack((cr_data[cr], [success, evaluations, cr, f, n, pop]))
-                else:
-                    cr_data[cr] = np.array([success, evaluations, cr, f, n, pop])
-
-        handles = []
-        colors = ["blue", "red", "green", "purple", "orange", "brown", "teal", "gray"]
-
-        for i, cr in enumerate(cr_data):
-            handles.append(Patch(color=colors[i], label="CR={:.3f}".format(cr)))
-            plt.plot(cr_data[cr][:, 3], cr_data[cr][:, 0], "o-", color=colors[i])
-
-        plt.title(f"Pop={pop}, n={int(n / 2)}")
-        plt.xlabel("F")
-        plt.ylabel("Number of evaluations")
-        plt.ylim([0, 1.1])
-        plt.legend(handles=handles)
-
-        plt.minorticks_off()
-        plt.show()
-
-
-def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key, xonly=None, yonly=None, zonly=None, k1only=None, k2only=None):
+def plot_parameters(file, xkey, ykey, zkey, k1key, k2key, xonly=None, yonly=None, zonly=None, k1only=None, k2only=None):
     raw_data = get_data(file)
     values = {
         "successrate": raw_data[:, 0],
@@ -112,7 +79,7 @@ def plot_nxyz(file, xkey, ykey, zkey, k1key, k2key, xonly=None, yonly=None, zonl
         plt.title(f"{longname[k1key]}={k1}, {longname[k2key]}={k2}")
         plt.xlabel(longname[xkey])
         plt.yscale("log")
-        plt.ylabel(ykey)
+        plt.ylabel(longname[ykey])
         plt.ylim([np.min(ys), np.max(ys) * 1.1])
         plt.legend(handles=handles)
 
